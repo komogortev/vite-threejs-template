@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
+// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 // 1. Init three tools
 // 1.1. Fundamental scene setup
 const renderer = new THREE.WebGLRenderer();
@@ -23,8 +24,13 @@ const scene = new THREE.Scene();
 const controls = new OrbitControls( camera, renderer.domElement );
 const loader = new GLTFLoader();
 
-const ambientLight = new THREE.AmbientLight(0xffffff, .5)
+const ambientLight = new THREE.AmbientLight(0xffffff, .25)
 scene.add(ambientLight);
+
+const color = 0xFFFFFF;
+const intensity = 3;
+const light = new THREE.PointLight(color, intensity);
+scene.add(light);
 
 // 1.1. System (dev, navigation) elements
 /* define lines *material, for lines we have to use LineBasicMaterial or LineDashedMaterial. */
@@ -52,12 +58,54 @@ const lineY = new THREE.Line( axisYGeometry, axisYMaterial );
 const lineZ = new THREE.Line( axisZGeometry, axisZMaterial );
 scene.add( lineX, lineY, lineZ );
 
+// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 // 2. Declare the scene content
 // * Basic geometry object creation (cube)
-const geometry = new THREE.BoxGeometry();
-const material = new THREE.MeshBasicMaterial( { color: 0x00ff00 } );
-const cube = new THREE.Mesh( geometry, material );
-scene.add( cube );
+// const geometry = new THREE.BoxGeometry();
+// const material = new THREE.MeshBasicMaterial( { color: 0x00ff00 } );
+// const cube = new THREE.Mesh( geometry, material );
+// scene.add( cube );
+
+
+
+// an array of objects whose rotation to update
+const objects = [];
+// use just one sphere for everything
+const radius = 1;
+const widthSegments = 6;
+const heightSegments = 6;
+const sphereGeometry = new THREE.SphereGeometry(
+    radius, widthSegments, heightSegments);
+
+// Sun
+const solarSystem = new THREE.Object3D();
+scene.add(solarSystem);
+objects.push(solarSystem);
+const sunMaterial = new THREE.MeshPhongMaterial({emissive: 0xFFFF00});
+const sunMesh = new THREE.Mesh(sphereGeometry, sunMaterial);
+sunMesh.scale.set(5, 5, 5);  // make the sun large
+solarSystem.add(sunMesh);
+objects.push(sunMesh);
+
+// Earth
+const earthOrbit = new THREE.Object3D();
+earthOrbit.position.x = 20;
+solarSystem.add(earthOrbit);
+objects.push(earthOrbit);
+const earthMaterial = new THREE.MeshPhongMaterial({color: 0x2233FF, emissive: 0x112244});
+const earthMesh = new THREE.Mesh(sphereGeometry, earthMaterial);
+earthOrbit.add(earthMesh);
+objects.push(earthMesh);
+
+// Moon
+const moonOrbit = new THREE.Object3D();
+moonOrbit.position.x = 2;
+earthOrbit.add(moonOrbit);
+const moonMaterial = new THREE.MeshPhongMaterial({color: 0x888888, emissive: 0x222222});
+const moonMesh = new THREE.Mesh(sphereGeometry, moonMaterial);
+moonMesh.scale.set(.5, .5, .5);
+moonOrbit.add(moonMesh);
+objects.push(moonMesh);
 
 // * Load 3D model
 loader.load( '/public/models/toon-cat/toon-cat.gltf', ( gltf ) => {
@@ -66,7 +114,6 @@ loader.load( '/public/models/toon-cat/toon-cat.gltf', ( gltf ) => {
   gltf.scenes; // Array<THREE.Group>
   gltf.cameras; // Array<THREE.Camera>
   gltf.asset; // Object
-
   // *1. detailed option: downsize the model scale
   // const box = new THREE.Box3().setFromObject(gltf.scene);
   // const size = new THREE.Vector3();
@@ -77,12 +124,13 @@ loader.load( '/public/models/toon-cat/toon-cat.gltf', ( gltf ) => {
   // gltf.scene.position.sub(center.multiplyScalar(scale));
   // *2. general scale: alter model scale (less recommended)
   gltf.scene.scale.setScalar(.025);
-  scene.add( gltf.scene );
+  earthMesh.add( gltf.scene );
 }, undefined, ( error ) => {
   console.error( error );
 } );
 
 
+// = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 // 3. Render the scene
 /* Create a loop that causes the renderer to draw the scene
   every time the screen is refreshed (on a typical screen
@@ -91,8 +139,12 @@ function animate() {
 	requestAnimationFrame( animate );
 	renderer.render( scene, camera );
 
-  cube.rotation.x += 0.01;
-  cube.rotation.y += 0.01;
+  // cube.rotation.x += 0.01;
+  // cube.rotation.y += 0.01;
+
+  objects.forEach((obj) => {
+    obj.rotation.y += 0.01;
+  });
 }
 
 animate();
