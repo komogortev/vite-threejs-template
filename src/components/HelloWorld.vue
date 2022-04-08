@@ -67,15 +67,16 @@ loader.load( '/public/models/toon-cat/toon-cat.gltf', ( gltf ) => {
   gltf.cameras; // Array<THREE.Camera>
   gltf.asset; // Object
 
-  // downsize the model scale
-  const box = new THREE.Box3().setFromObject(gltf.scene);
-  const size = new THREE.Vector3();
-  var center = new THREE.Vector3();
-  box.getCenter(center);
-  var scale = .05;
-  gltf.scene.scale.setScalar(scale);
-  gltf.scene.position.sub(center.multiplyScalar(scale));
-
+  // *1. detailed option: downsize the model scale
+  // const box = new THREE.Box3().setFromObject(gltf.scene);
+  // const size = new THREE.Vector3();
+  // var center = new THREE.Vector3();
+  // box.getCenter(center);
+  // var scale = .05;
+  // gltf.scene.scale.setScalar(scale);
+  // gltf.scene.position.sub(center.multiplyScalar(scale));
+  // *2. general scale: alter model scale (less recommended)
+  gltf.scene.scale.setScalar(.025);
   scene.add( gltf.scene );
 }, undefined, ( error ) => {
   console.error( error );
