@@ -1,7 +1,14 @@
 <script setup>
-// This starter template is using Vue 3 <script setup> SFCs
-// Check out https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup
+import { provide, onMounted } from "vue";
+import useWorldStore  from "./store/world";
 import HelloWorld from './components/HelloWorld.vue'
+
+const { clue1, fetchTodos, selectedClue, loading } = useWorldStore();
+
+onMounted(() => {
+  fetchTodos();
+});
+
 </script>
 
 <template>

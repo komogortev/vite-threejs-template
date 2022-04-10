@@ -1,11 +1,10 @@
 <script setup>
 import { ref } from 'vue'
+import useWorldStore from "../store/world";
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-
-import Camera from '../core/Camera.vue'
-
+const { solarSystem } = useWorldStore();
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 // 1. Init three tools
 // 1.1. Fundamental scene setup
@@ -39,44 +38,60 @@ scene.add(light);
 
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 // 2. Declare the scene content
-// an array of objects whose rotation to update
+// 2.2 An array of objects whose rotation to update
 const objects = [];
-// use just one sphere for everything
+// 2.2 Use just one sphere for everything
 const radius = 1;
 const widthSegments = 6;
 const heightSegments = 6;
 const sphereGeometry = new THREE.SphereGeometry(
     radius, widthSegments, heightSegments);
 
-// Sun
-const solarSystem = new THREE.Object3D();
-scene.add(solarSystem);
-objects.push(solarSystem);
-const sunMaterial = new THREE.MeshPhongMaterial({emissive: 0xFFFF00});
-const sunMesh = new THREE.Mesh(sphereGeometry, sunMaterial);
-sunMesh.scale.set(5, 5, 5);  // make the sun large
-solarSystem.add(sunMesh);
-objects.push(sunMesh);
+const parsedSolar = JSON.parse(JSON.stringify(solarSystem.value))
+Object.keys(parsedSolar).forEach(objectName => {
+  createPlanetoid(
+    null, {[objectName]: parsedSolar[objectName]}
+  );
+})
 
-// Earth
-const earthOrbit = new THREE.Object3D();
-earthOrbit.position.x = 20;
-solarSystem.add(earthOrbit);
-objects.push(earthOrbit);
-const earthMaterial = new THREE.MeshPhongMaterial({color: 0x2233FF, emissive: 0x112244});
-const earthMesh = new THREE.Mesh(sphereGeometry, earthMaterial);
-earthOrbit.add(earthMesh);
-objects.push(earthMesh);
+function createPlanetoid (parent = null, planetoidInfo = {}) {
+  const planetoidName = Object.keys(planetoidInfo)[0]
+  const _sphere = new THREE.Object3D();
+  const _material = new THREE.MeshPhongMaterial({
+    emissive: planetoidInfo[planetoidName].emissive,
+    color: planetoidInfo[planetoidName].color
+  });
+  const _mesh = new THREE.Mesh(sphereGeometry, _material);
+  scene.add(_sphere);
+  objects.push(_sphere);
 
-// Moon
-const moonOrbit = new THREE.Object3D();
-moonOrbit.position.x = 2;
-earthOrbit.add(moonOrbit);
-const moonMaterial = new THREE.MeshPhongMaterial({color: 0x888888, emissive: 0x222222});
-const moonMesh = new THREE.Mesh(sphereGeometry, moonMaterial);
-moonMesh.scale.set(.5, .5, .5);
-moonOrbit.add(moonMesh);
-objects.push(moonMesh);
+  Object.keys(planetoidInfo[planetoidName]).forEach(prop => {
+    switch (prop) {
+      case 'scale':
+        _mesh.scale.set(
+          planetoidInfo[planetoidName].scale,
+          planetoidInfo[planetoidName].scale,
+          planetoidInfo[planetoidName].scale,
+        );
+        break;
+      case 'distance':
+        _sphere.position.x = planetoidInfo[planetoidName].distance * 100
+        break;
+    }
+
+    if (planetoidInfo[planetoidName].children) {
+      Object.keys(planetoidInfo[planetoidName].children).forEach(childName => {
+        createPlanetoid(
+          planetoidName,
+          { [childName]: planetoidInfo[planetoidName].children[childName] }
+        )
+      })
+    }
+  })
+
+  _sphere.add(_mesh);
+  objects.push(_mesh);
+}
 
 // add an AxesHelper to each node
 objects.forEach((node) => {
@@ -103,7 +118,7 @@ loader.load( '/public/models/toon-cat/toon-cat.gltf', ( gltf ) => {
   // gltf.scene.position.sub(center.multiplyScalar(scale));
   // *2. general scale: alter model scale (less recommended)
   gltf.scene.scale.setScalar(.025);
-  earthMesh.add( gltf.scene );
+  scene.add( gltf.scene );
 }, undefined, ( error ) => {
   console.error( error );
 } );
@@ -127,7 +142,9 @@ animate();
 
 <template>
   <div id="info">Threejs basic template</div>
-
+  <pre>
+    clue1
+  </pre>
   <Camera></Camera>
 </template>
 
